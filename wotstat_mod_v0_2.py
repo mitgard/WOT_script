@@ -30,7 +30,7 @@ class SessionStatistic(object):
         self.values = {}
         self.battles = []
         self.playerName = ''
-		self.playerAccount = ''
+        self.playerAccount = ''
         self.startDate = None
         self.battleResultsAvailable = threading.Event()
         self.battleResultsAvailable.clear()
@@ -57,11 +57,10 @@ class SessionStatistic(object):
             if datetime.datetime.now().hour >= self.config.get('dailyAutoResetHour', 4) \
             else (datetime.date.today() - datetime.timedelta(days = 1)).strftime('%Y-%m-%d')
 
-    def save(data):
-#       data = dictToJson(battle)
-#		print data
-		httpConnectoin(dictToJson(battle))
-		
+    def save(self, data):
+#        dataJson = dictToJson(battle)
+#        print dataJson
+        self.httpConnectoin(self.dictToJson(data))
 
 
     def battleResultsCallback(self, arenaUniqueID, responseCode, value = None, revision = 0):
@@ -105,8 +104,8 @@ class SessionStatistic(object):
         if 'premium' in vt.tags:
             tmenXP = int(1.5*tmenXP)
         battle = {
-			'playerName': BigWorld.player().name
-			'playerAccount': g_loginManager.getPreference('login_type')
+            'playerName': BigWorld.player().name,
+            'playerAccount': g_loginManager.getPreference('login'),
             'idNum': vehicleCompDesc,
             'map': arenaType.geometryName,
             'vehicle': vt.name.replace(':', '-'),
@@ -140,20 +139,19 @@ class SessionStatistic(object):
             'autoLoad': personal['autoLoadCost'][0],
             'tmenXP': tmenXP
         }
-		
+
         @!( 'battle')
         @!( battle)
         @!( 'extended')
         @!( extended)
-		if len(battle):
-			save(battle)
+        self.save(battle)
         self.battleResultsBusy.release()
 
     def reset(self):
         self.page = GENERAL
         self.startDate = self.getWorkDate()
         self.battles = []
-        self.save()
+#        self.save()
 
     def mainLoop(self):
         while True:
@@ -161,20 +159,21 @@ class SessionStatistic(object):
             self.battleResultsAvailable.wait()
             self.battleResultsBusy.acquire()
             BigWorld.player().battleResultsCache.get(arenaUniqueID,lambda resID, value: self.battleResultsCallback(arenaUniqueID, resID, value, None))
-			
-	def dictToJson(dictData):
-        dataJson = json.dumps(battle,  separators=(',', ': '),ensure_ascii = False, encoding='utf-8')
+
+
+    def dictToJson(self,dictData):
+        dataJson = json.dumps(dictData,  separators=(',', ': '),ensure_ascii = False, encoding='utf-8')
         return dataJson
 
 
-	def httpConnectoin(dataSend):
-		headers = {"Content-type": "application/json"}
-		conn = httplib.HTTPConnection("localhost",9000)
-		conn.request("POST", "/sendStat", dataSend, headers)
-		response = conn.getresponse()
-		print response.status, response.reason
+    def httpConnectoin(self,dataSend):
+        headers = {"Content-type": "application/json"}
+        conn = httplib.HTTPConnection("localhost",9000)
+        conn.request("POST", "/sendStat", dataSend, headers)
+        response = conn.getresponse()
+#        @!(response.status, response.reason)
 #    	data = response.read()
-		conn.close()
+        conn.close()
         
 
 old_onBecomePlayer = Account.onBecomePlayer
